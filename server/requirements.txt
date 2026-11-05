@@ -1,0 +1,5 @@
+flask>=3.0
+flask-sock>=0.7
+numpy>=1.26
+matplotlib>=3.8
+gunicorn>=22.0

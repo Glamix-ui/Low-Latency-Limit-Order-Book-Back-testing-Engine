@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LOB Terminal · C++ Matching Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/terminal.css">
+</head>
+<body class="min-h-screen text-slate-200 antialiased">
+
+  <!-- Header / ticker -->
+  <header class="flex flex-wrap items-center gap-x-8 gap-y-2 px-5 py-3 border-b border-line bg-panel/80 backdrop-blur sticky top-0 z-10">
+    <div class="flex items-center gap-3">
+      <div class="logo">LOB</div>
+      <div>
+        <div class="font-semibold tracking-wide leading-tight">SIM/USD <span class="text-slate-500 font-normal">· Simulated Exchange</span></div>
+        <div class="text-[11px] text-slate-500">C++ matching engine · price-time priority</div>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-x-7 gap-y-1 text-sm">
+      <div><div class="lbl">Last</div><div id="t-last" class="val text-lg">—</div></div>
+      <div><div class="lbl">Bid</div><div id="t-bid" class="val up">—</div></div>
+      <div><div class="lbl">Ask</div><div id="t-ask" class="val down">—</div></div>
+      <div><div class="lbl">Spread</div><div id="t-spread" class="val">—</div></div>
+      <div><div class="lbl">Volume</div><div id="t-vol" class="val">—</div></div>
+      <div><div class="lbl">Trades</div><div id="t-trades" class="val">—</div></div>
+    </div>
+    <div class="ml-auto flex items-center gap-2 text-xs text-slate-400"><span id="dot" class="dot"></span><span id="conn">connecting…</span></div>
+  </header>
+
+  <main class="grid gap-3 p-3 lg:grid-cols-12">
+
+    <!-- Order book ladder -->
+    <section class="panel lg:col-span-3">
+      <h2>Order Book <span class="hint">click a price to use it</span></h2>
+      <div class="cols"><span>Price</span><span>Size</span><span>Orders</span></div>
+      <div id="asks" class="ladder"></div>
+      <div id="mid" class="midrow">—</div>
+      <div id="bids" class="ladder"></div>
+    </section>
+
+    <!-- Charts -->
+    <section class="lg:col-span-6 grid gap-3">
+      <div class="panel"><h2>Price <span class="hint">2-second candles from the trade stream</span></h2><canvas id="candles" class="chart h-72"></canvas></div>
+      <div class="panel"><h2>Market Depth <span class="hint">cumulative size, the “walls”</span></h2><canvas id="depth" class="chart h-52"></canvas></div>
+    </section>
+
+    <!-- Order entry + tape -->
+    <section class="lg:col-span-3 grid gap-3 content-start">
+      <div class="panel">
+        <h2>Order Entry</h2>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <button id="side-buy" class="side active-buy">BUY</button>
+          <button id="side-sell" class="side">SELL</button>
+        </div>
+        <label class="lbl">Type</label>
+        <select id="otype" class="field mb-2">
+          <option value="LIMIT">Limit</option><option value="MARKET">Market</option>
+          <option value="IOC">IOC (Immediate-or-Cancel)</option><option value="FOK">FOK (Fill-or-Kill)</option>
+        </select>
+        <div class="grid grid-cols-2 gap-2">
+          <div><label class="lbl">Price</label><input id="price" type="number" step="0.01" class="field"></div>
+          <div><label class="lbl">Quantity</label><input id="qty" type="number" step="1" min="1" value="50" class="field"></div>
+        </div>
+        <button id="submit" class="submit mt-3">Place Buy Order</button>
+        <div id="msg" class="text-xs mt-2 min-h-[1.25rem]"></div>
+      </div>
+      <div class="panel">
+        <h2>Trade Tape</h2>
+        <div class="cols"><span>Price</span><span>Size</span><span>Time</span></div>
+        <div id="tape" class="tape"></div>
+      </div>
+    </section>
+
+    <!-- Bottom row -->
+    <section class="panel lg:col-span-4">
+      <h2>My Open Orders</h2>
+      <div id="mine" class="text-sm"><div class="text-slate-500 text-xs">No open orders. Place a limit order away from the market to see it here.</div></div>
+    </section>
+
+    <section class="panel lg:col-span-5">
+      <h2>Strategy Backtest <span class="hint">moving-average crossover, executed through the C++ engine</span></h2>
+      <div class="flex flex-wrap items-end gap-3 mb-3">
+        <div><label class="lbl">Fast MA</label><input id="bt-fast" type="number" value="10" min="2" class="field w-20"></div>
+        <div><label class="lbl">Slow MA</label><input id="bt-slow" type="number" value="30" min="3" class="field w-20"></div>
+        <div><label class="lbl">Seed</label><input id="bt-seed" type="number" value="1" class="field w-20"></div>
+        <button id="bt-run" class="submit !w-auto px-4">Run backtest</button>
+      </div>
+      <canvas id="bt-chart" class="chart h-40"></canvas>
+      <div class="legend"><span><i style="background:#4c8dff"></i>Strategy</span><span><i style="background:#8a94a6"></i>Buy &amp; hold</span></div>
+      <div id="bt-stats" class="grid grid-cols-3 gap-2 mt-2 text-sm"></div>
+    </section>
+
+    <section class="panel lg:col-span-3">
+      <h2>Engine</h2>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div><div class="lbl">Latency p50</div><div id="e-p50" class="val">—</div></div>
+        <div><div class="lbl">Latency p99</div><div id="e-p99" class="val">—</div></div>
+        <div><div class="lbl">Orders processed</div><div id="e-orders" class="val">—</div></div>
+        <div><div class="lbl">Matches</div><div id="e-trades" class="val">—</div></div>
+      </div>
+      <div class="text-[11px] text-slate-500 mt-1">Latency = Python → C++ round trip per order (includes ctypes overhead).</div>
+      <div class="lbl mt-3">C++ benchmark (Google Benchmark)</div>
+      <div id="bench" class="text-xs text-slate-400">loading…</div>
+    </section>
+  </main>
+
+  <footer class="text-center text-[11px] text-slate-600 pb-6">Simulated market for demonstration. No real money or real securities.</footer>
+
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

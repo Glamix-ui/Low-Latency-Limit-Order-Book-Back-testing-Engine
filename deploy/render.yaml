@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: lob-terminal
+    runtime: docker
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    plan: free
